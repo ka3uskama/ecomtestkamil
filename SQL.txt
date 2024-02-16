@@ -1,0 +1,36 @@
+Есть две таблицы:
+    1) event_logs с полями:
+        event_timestamp - дата и время совершения событий
+        id - уникальный идентификатор события
+        user_id - уникальный идентификатор юзера совершившего событие
+        session_id - уникальный для каждого юзера идентификатор сессии (у разных пользователей может быть одинаковый session_id)
+        event_name - наименование событие, тут могут быть разные наименования
+        platform - платформа девайса на котром совершалось событие (web, android, ios)
+    2) users с полями:
+        id - уникальный идентификатор юзера
+        first_name - имя юзера
+        last_name - фамилия юзера
+        phone - телефон юзера
+        email - имейл юзера
+        region - регион в котором зарегистрирован юзер
+
+Напиши запрос, который бы вывел кол-во сессий за вчерашний день, где последним событием было переход к клиенту event_name = 'to_client'
+
+Напиши запрос, который бы вывел для каждого региона, сколько в среднем юзер видит рекламных объявлений в день, на всех исторических данных. Просмотр рекламы это event_name= 'ad_view'
+Можно использовать любой привычный диалект SQL
+
+1)
+
+with t as (select session_id, event_timestamp, MAX(event_timestamp) over(partition by session_id, user_id) max_time from event_logs
+where DATE(event_timestamp) = CURRENT_DATE - INTERVAL '1 day')
+
+select count(distinct session_id) from t
+where event_timestamp = max_time and event_name = 'to_client'
+
+2)
+
+SELECT u.region, COUNT(e.id) / COUNT(DISTINCT DATE(e.event_timestamp)) AS avg_ad_views_per_day
+FROM event_logs e
+JOIN users u ON e.user_id = u.id
+WHERE e.event_name = 'ad_view'
+GROUP BY u.region;
